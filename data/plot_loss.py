@@ -18,7 +18,7 @@ ax3d.plot_surface(alpha, beta, loss, cmap=cm.viridis, linewidth=0, antialiased=T
 ax3d.set_xlabel("Direction 1 (alpha)")
 ax3d.set_ylabel("Direction 2 (beta)")
 ax3d.set_zlabel("MSE Loss")
-ax3d.set_title("Loss Landscape - 3D Surface")
+ax3d.set_title("Loss Landscape 3D")
 
 # Right: contour heatmap
 ax2d = axes[1]
@@ -27,7 +27,7 @@ contour_lines  = ax2d.contour(alpha, beta, loss, levels=10, colors="white", line
 fig.colorbar(contour_filled, ax=ax2d, label="MSE Loss")
 ax2d.set_xlabel("Direction 1 (alpha)")
 ax2d.set_ylabel("Direction 2 (beta)")
-ax2d.set_title("Loss Landscape - Contour")
+ax2d.set_title("Loss Landscape 2D")
 
 # Mark the trained minimum (alpha=0, beta=0)
 ax2d.plot(0, 0, "r*", markersize=12, label="Trained weights")
