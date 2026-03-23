@@ -1,6 +1,7 @@
 #include "src/NeuralNetwork.h"
 #include "src/Visualizer.h"
 #include "src/DataLoader.h"
+#include "src/LossLandscape.h"
 
 #include <iostream>
 #include <fstream>
@@ -173,6 +174,9 @@ int main()
     }
 
     std::cout << "Mean val accuracy: " << totalValAcc / k << "\n\n";
+
+    std::cout << "loss landscape\n";
+    LossLandscape::compute(foldModels[0], allSamples, "../data/loss_landscape.csv", 40, 1.0);
 
     auto [testFeatures, passengerIds] = DataLoader::loadTest("data/test.csv", preprocessor);
     std::cout << "Kaggle test samples: " << testFeatures.size() << "\n";

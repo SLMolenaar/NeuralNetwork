@@ -7,7 +7,7 @@ Tested on the Kaggle Titanic competition, scoring in the top 10% with a score of
 Note: I understand that this is a suboptimal approach to building a neural network. A production implementation would use matrix operations instead of individual neuron objects, but the goal here is educational clarity over performance.
 
 ![img.png](nn_img.png)
-
+![img.png](loss_function.png)
 ## Installation
 
 **Prerequisites:** [vcpkg](https://github.com/microsoft/vcpkg), CMake, a C++20 compiler.

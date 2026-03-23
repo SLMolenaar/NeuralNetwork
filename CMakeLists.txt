@@ -16,7 +16,9 @@ add_executable(NeuralNetwork main.cpp
         src/Visualizer.cpp
         src/Visualizer.h
         src/DataLoader.cpp
-        src/DataLoader.h)
+        src/DataLoader.h
+        src/LossLandscape.cpp
+        src/LossLandscape.h)
 
 target_link_libraries(NeuralNetwork SFML::Graphics CURL::libcurl nlohmann_json::nlohmann_json)
 
