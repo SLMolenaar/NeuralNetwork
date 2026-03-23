@@ -5,6 +5,7 @@ An educational project to understand how neural networks work by building one fr
 Tested on the Kaggle Titanic competition, scoring in the top 10% with a score of 0.79186 out of more than 12,000 competitors.
 
 ![img.png](nn_img.png)
+Note: I understand that this is a suboptimal approach to building a neural network. A production implementation would use matrix operations instead of individual neuron objects, but the goal here is educational clarity over performance.
 
 ## Installation
 
