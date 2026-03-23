@@ -2,7 +2,9 @@
 
 An educational project to understand how neural networks work by building one from scratch in C++, without any ML libraries.
 
-Tested on the Kaggle Titanic competition and scored top 10% with a score of 0.79186.
+Tested on the Kaggle Titanic competition, scoring in the top 10% with a score of 0.79186 out of more than 12,000 competitors.
+
+![img.png](nn_img.png)
 
 ## Installation
 
