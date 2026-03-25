@@ -3,48 +3,34 @@
 #include <stdexcept>
 #include <cmath>
 
-NeuralNetwork::NeuralNetwork(const std::vector<int>& layerSizes,
-                             const std::vector<std::function<double(double)>>& activationFns,
-                             const std::vector<std::function<double(double)>>& activationFnDerivatives)
+NeuralNetwork::NeuralNetwork(
+    const std::vector<int>& layerSizes,
+    const std::vector<std::function<double(double)>>& activationFns,
+    const std::vector<std::function<double(double)>>& activationFnDerivatives)
     : layerSizes(layerSizes)
 {
     if (layerSizes.size() < 2)
         throw std::invalid_argument("Network must have at least 2 layers (input and output)");
-
     if (activationFns.size() != layerSizes.size() - 1)
         throw std::invalid_argument("activationFns must have one entry per layer excluding input");
-
     if (activationFnDerivatives.size() != activationFns.size())
         throw std::invalid_argument("activationFnDerivatives must match activationFns in size");
 
-    // layerSizes[0] is the input size, not an actual neuron layer
-    for (int i = 1; i < (int)layerSizes.size(); i++) {
-        std::vector<Neuron> layer;
-        layer.reserve(layerSizes[i]);
-
-        for (int j = 0; j < layerSizes[i]; j++)
-            layer.emplace_back(layerSizes[i - 1], activationFns[i - 1], activationFnDerivatives[i - 1]);
-
-        layers.push_back(std::move(layer));
-    }
+    layers.reserve(layerSizes.size() - 1);
+    for (int i = 1; i < (int)layerSizes.size(); ++i)
+        layers.emplace_back(layerSizes[i - 1], layerSizes[i],
+                            activationFns[i - 1], activationFnDerivatives[i - 1]);
 }
 
 std::vector<double> NeuralNetwork::forward(const std::vector<double>& inputs)
 {
-    std::vector<double> activations = inputs;
+    Eigen::VectorXd activations = Eigen::Map<const Eigen::VectorXd>(inputs.data(), inputs.size());
 
-    for (std::vector<Neuron>& layer : layers) {
-        std::vector<double> nextActivations;
-        nextActivations.reserve(layer.size());
+    for (Layer& layer : layers)
+        activations = layer.forward(activations);
 
-        for (Neuron& neuron : layer)
-            nextActivations.push_back(neuron.forward(activations));
-
-        activations = std::move(nextActivations);
-    }
-
-    lastOutputs = activations;
-    return activations;
+    lastOutputs = std::vector<double>(activations.data(), activations.data() + activations.size());
+    return lastOutputs;
 }
 
 void NeuralNetwork::backward(const std::vector<double>& targets)
@@ -52,29 +38,18 @@ void NeuralNetwork::backward(const std::vector<double>& targets)
     if (targets.size() != lastOutputs.size())
         throw std::invalid_argument("Targets size does not match output size");
 
-    std::vector<Neuron>& outputLayer = layers.back();
-    for (int i = 0; i < (int)outputLayer.size(); i++)
-        outputLayer[i].backward(lastOutputs[i] - targets[i]);
+    Eigen::VectorXd grad(lastOutputs.size());
+    for (int i = 0; i < (int)lastOutputs.size(); ++i)
+        grad[i] = lastOutputs[i] - targets[i];
 
-    for (int i = (int)layers.size() - 2; i >= 0; i--) {
-        std::vector<Neuron>& currentLayer = layers[i];
-        std::vector<Neuron>& nextLayer    = layers[i + 1];
-
-        for (int j = 0; j < (int)currentLayer.size(); j++) {
-            double error = 0.0;
-            for (Neuron& nextNeuron : nextLayer)
-                error += nextNeuron.delta * nextNeuron.getWeight(j);
-
-            currentLayer[j].backward(error);
-        }
-    }
+    for (int i = (int)layers.size() - 1; i >= 0; --i)
+        grad = layers[i].backward(grad);
 }
 
 void NeuralNetwork::updateWeights(double learningRate)
 {
-    for (std::vector<Neuron>& layer : layers)
-        for (Neuron& neuron : layer)
-            neuron.updateWeights(learningRate);
+    for (Layer& layer : layers)
+        layer.updateWeights(learningRate);
 }
 
 double NeuralNetwork::loss(const std::vector<double>& targets) const
@@ -83,12 +58,11 @@ double NeuralNetwork::loss(const std::vector<double>& targets) const
         throw std::invalid_argument("Targets size does not match output size");
 
     double sum = 0.0;
-    for (int i = 0; i < (int)targets.size(); i++) {
+    for (int i = 0; i < (int)targets.size(); ++i) {
         double diff = lastOutputs[i] - targets[i];
         sum += diff * diff;
     }
-
-    return sum / targets.size();
+    return sum / (double)targets.size();
 }
 
 const std::vector<int>& NeuralNetwork::getLayerSizes() const
@@ -102,28 +76,41 @@ WeightSnapshot NeuralNetwork::saveWeights() const
     snapshot.weights.resize(layers.size());
     snapshot.biases.resize(layers.size());
 
-    for (int i = 0; i < (int)layers.size(); i++) {
-        snapshot.weights[i].resize(layers[i].size());
-        snapshot.biases[i].resize(layers[i].size());
+    for (int i = 0; i < (int)layers.size(); ++i) {
+        const Eigen::MatrixXd& W = layers[i].getWeights();
+        const Eigen::VectorXd& b = layers[i].getBiases();
 
-        for (int j = 0; j < (int)layers[i].size(); j++) {
-            const Neuron& neuron = layers[i][j];
-            snapshot.biases[i][j] = neuron.getBias();
+        const int nOut = (int)W.rows();
+        const int nIn  = (int)W.cols();
 
-            snapshot.weights[i][j].resize(layerSizes[i]);
-            for (int k = 0; k < layerSizes[i]; k++)
-                snapshot.weights[i][j][k] = neuron.getWeight(k);
+        snapshot.weights[i].resize(nOut, std::vector<double>(nIn));
+        snapshot.biases[i].resize(nOut);
+
+        for (int r = 0; r < nOut; ++r) {
+            snapshot.biases[i][r] = b[r];
+            for (int c = 0; c < nIn; ++c)
+                snapshot.weights[i][r][c] = W(r, c);
         }
     }
-
     return snapshot;
 }
 
 void NeuralNetwork::loadWeights(const WeightSnapshot& snapshot)
 {
-    for (int i = 0; i < (int)layers.size(); i++)
-        for (int j = 0; j < (int)layers[i].size(); j++)
-            layers[i][j].setWeightsAndBias(snapshot.weights[i][j], snapshot.biases[i][j]);
-}
+    for (int i = 0; i < (int)layers.size(); ++i) {
+        const int nOut = (int)snapshot.weights[i].size();
+        const int nIn  = (int)snapshot.weights[i][0].size();
 
+        Eigen::MatrixXd W(nOut, nIn);
+        Eigen::VectorXd b(nOut);
+
+        for (int r = 0; r < nOut; ++r) {
+            b[r] = snapshot.biases[i][r];
+            for (int c = 0; c < nIn; ++c)
+                W(r, c) = snapshot.weights[i][r][c];
+        }
+
+        layers[i].setWeightsAndBiases(W, b);
+    }
+}
 
