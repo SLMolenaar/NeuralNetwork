@@ -125,3 +125,5 @@ void NeuralNetwork::loadWeights(const WeightSnapshot& snapshot)
         for (int j = 0; j < (int)layers[i].size(); j++)
             layers[i][j].setWeightsAndBias(snapshot.weights[i][j], snapshot.biases[i][j]);
 }
+
+
