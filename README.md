@@ -14,6 +14,7 @@ Install dependencies:
 
 ```bash
 vcpkg install sfml curl nlohmann-json
+vcpkg install eigen3
 ```
 
 Build:
