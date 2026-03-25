@@ -27,3 +27,4 @@ cmake --build build
 ## Resources
 
 - 3Blue1Brown neural networks course (https://www.youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi)
+- GreenCode NN from scratch in Python explanation video (https://youtu.be/cAkMcPfY_Ns?si=Cadj_Bu53qZcmKBK)
